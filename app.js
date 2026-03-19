@@ -25,7 +25,7 @@ function uiScale() {
 }
 
 // Base sizes (desktop), multiplied by uiScale() when used
-const BASE_DOT_RADIUS = 6;
+const BASE_DOT_RADIUS = 18;
 const BASE_LABEL_FONT = 11;
 const BASE_FREQ_LABEL_FONT = 11;
 
@@ -356,9 +356,10 @@ function drawSpectrum(alpha) {
     if (barH < 0.5) continue;
 
     const grad = ctx.createLinearGradient(0, h, 0, h - barH);
-    grad.addColorStop(0,   rgbString(r, g, b, value * 1.0 * alpha));
+    grad.addColorStop(0,   rgbString(r, g, b, 0));                    // fade out at bottom
+    grad.addColorStop(0.1, rgbString(r, g, b, value * 1.0 * alpha));  // peak near base
     grad.addColorStop(0.5, rgbString(r, g, b, value * 0.7 * alpha));
-    grad.addColorStop(1,   rgbString(r, g, b, value * 0.1 * alpha));
+    grad.addColorStop(1,   rgbString(r, g, b, value * 0.1 * alpha));  // fade out at top
     ctx.fillStyle = grad;
     ctx.fillRect(barX, h - barH, barW, barH);
   }
