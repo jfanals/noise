@@ -99,6 +99,7 @@ html, body {
   .hud-freq { font-size: 17px; margin-top: 4px; }
   .hud-timer { font-size: 17px; margin-top: 12px; }
   .hud-hint { font-size: 13px; margin-top: 6px; }
+  .hud-version { font-size: 12px; margin-top: 12px; }
 }
 
 ::selection {
