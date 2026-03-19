@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="Ultra-minimal web-based noise generator">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Noise</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M4 16 Q8 4 12 16 Q16 28 20 16 Q24 4 28 16' fill='none' stroke='%2300d4ff' stroke-width='2.5' stroke-linecap='round'/></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="noisePad" role="application" aria-label="Noise generator pad — drag to change noise type and frequency"></canvas>
+
+  <div id="hud" class="hud">
+    <div id="noiseType" class="hud-type"></div>
+    <div id="noiseFreq" class="hud-freq"></div>
+    <div id="timer" class="hud-timer" aria-live="polite" aria-atomic="true">00:00:00</div>
+    <div class="hud-hint">double tap to reset timer</div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
