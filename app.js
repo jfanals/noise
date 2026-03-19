@@ -5,13 +5,32 @@
 // Double-tap resets the listening timer.
 
 const STATE_KEY = 'noiseGeneratorState';
-const DOT_RADIUS = 6;
 const MAX_TRAIL = 10;
 const OVERLAY_FADE_RATE = 0.08; // interpolation factor for overlay fade (0–1)
 const FADE_DURATION = 0.5;      // audio fade in/out in seconds
 const HUD_LINGER_MS = 800;      // how long HUD stays after releasing drag
 const DOUBLE_TAP_MS = 350;      // max interval for double-tap detection
 const TIMER_SAVE_INTERVAL = 10; // save timer to localStorage every N seconds
+
+// ─── Responsive sizing ───────────────────────────────────────────────────────
+
+// Detect touch device for scaling (coarse pointer = finger, not mouse)
+function isTouchDevice() {
+  return matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+}
+
+// Scale factor: 3x on touch/mobile, 1x on desktop
+function uiScale() {
+  return isTouchDevice() ? 3 : 1;
+}
+
+// Base sizes (desktop), multiplied by uiScale() when used
+const BASE_DOT_RADIUS = 6;
+const BASE_LABEL_FONT = 11;
+const BASE_FREQ_LABEL_FONT = 11;
+
+function dotRadius()  { return BASE_DOT_RADIUS * uiScale(); }
+function labelFont()  { return BASE_LABEL_FONT * uiScale(); }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -109,34 +128,61 @@ let analyser = null;
 let fadeGain = null;
 let freqData = null;         // raw Uint8Array from analyser
 let smoothedSpectrum = null; // smoothed Float32Array for display
+let audioReady = false;      // true once worklet is loaded and connected
 
-async function initAudio() {
-  if (state.audioInitialized) return;
+// Step 1: Create AudioContext synchronously inside the user gesture.
+// This MUST happen synchronously in the event handler — if we await anything
+// before creating/resuming the context, mobile browsers drop the gesture.
+function createAudioContext() {
+  if (audioCtx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  audioCtx = new AC();
 
-  audioCtx = new AudioContext();
-  await audioCtx.audioWorklet.addModule('noise-processor.js');
+  // On iOS, playing a silent buffer helps unlock audio in silent mode
+  try {
+    const silentBuffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+    const src = audioCtx.createBufferSource();
+    src.buffer = silentBuffer;
+    src.connect(audioCtx.destination);
+    src.start(0);
+  } catch {}
 
-  workletNode = new AudioWorkletNode(audioCtx, 'noise-processor', {
-    numberOfInputs: 0,
-    numberOfOutputs: 1,
-    outputChannelCount: [2],
-  });
+  // Resume immediately while we still have the user gesture
+  audioCtx.resume();
+}
 
-  analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 2048;
-  analyser.smoothingTimeConstant = 0.8;
-  freqData = new Uint8Array(analyser.frequencyBinCount);
-  smoothedSpectrum = new Float32Array(analyser.frequencyBinCount);
+// Step 2: Load the AudioWorklet module and wire up nodes (async, runs after gesture).
+async function initAudioWorklet() {
+  if (audioReady) return;
+  try {
+    await audioCtx.audioWorklet.addModule('noise-processor.js');
 
-  fadeGain = audioCtx.createGain();
-  fadeGain.gain.value = 0;
+    workletNode = new AudioWorkletNode(audioCtx, 'noise-processor', {
+      numberOfInputs: 0,
+      numberOfOutputs: 1,
+      outputChannelCount: [2],
+    });
 
-  workletNode.connect(analyser);
-  analyser.connect(fadeGain);
-  fadeGain.connect(audioCtx.destination);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.8;
+    freqData = new Uint8Array(analyser.frequencyBinCount);
+    smoothedSpectrum = new Float32Array(analyser.frequencyBinCount);
 
-  state.audioInitialized = true;
-  syncAudioParams();
+    fadeGain = audioCtx.createGain();
+    fadeGain.gain.value = 0;
+
+    workletNode.connect(analyser);
+    analyser.connect(fadeGain);
+    fadeGain.connect(audioCtx.destination);
+
+    audioReady = true;
+    syncAudioParams();
+    play();
+    setupMediaSession();
+  } catch (err) {
+    console.error('Failed to init AudioWorklet:', err);
+  }
 }
 
 function syncAudioParams() {
@@ -324,6 +370,7 @@ function drawSpectrum(alpha) {
 function drawGrid(alpha) {
   if (alpha <= 0.001) return;
   const { w, h } = logicalSize();
+  const fontSize = labelFont();
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -344,7 +391,7 @@ function drawGrid(alpha) {
   }
 
   // Noise type labels (left edge)
-  ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
   ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
   ctx.textAlign = 'left';
   for (const { pos, name } of NOISE_TYPES) {
@@ -408,17 +455,19 @@ function drawDot(x, y, alpha, radius) {
 
 function drawTrailDots(alpha) {
   if (alpha <= 0.001) return;
+  const radius = dotRadius();
   for (let i = 0; i < trailDots.length; i++) {
     const dot = trailDots[i];
     const ageRatio = (i + 1) / (trailDots.length + 1); // 0→1, newer = higher
-    drawDot(dot.x, dot.y, ageRatio * 0.35 * alpha, DOT_RADIUS * (0.6 + ageRatio * 0.4));
+    drawDot(dot.x, dot.y, ageRatio * 0.35 * alpha, radius * (0.6 + ageRatio * 0.4));
   }
 }
 
 function drawActiveDot() {
+  const radius = dotRadius();
   const alpha = dragging ? 1.0 : 0.7;
-  const radius = dragging ? DOT_RADIUS + 2 : DOT_RADIUS;
-  drawDot(state.ballX, state.ballY, alpha, radius);
+  const r = dragging ? radius + 4 : radius;
+  drawDot(state.ballX, state.ballY, alpha, r);
 }
 
 // ─── Render loop ─────────────────────────────────────────────────────────────
@@ -487,13 +536,16 @@ function screenToNorm(clientX, clientY) {
   };
 }
 
-async function onPointerDown(clientX, clientY) {
-  // Auto-init audio on first interaction (browsers require a user gesture)
+function onPointerDown(clientX, clientY) {
+  // On first interaction: create AudioContext SYNCHRONOUSLY (preserves user gesture),
+  // then load the worklet async. This is critical for mobile browsers.
   if (!state.audioInitialized) {
-    await initAudio();
-    play();
-    setupMediaSession();
+    state.audioInitialized = true;
+    createAudioContext();
+    // Worklet loading is async — audio starts once it's ready
+    initAudioWorklet();
   }
+
   dragging = true;
   const { x, y } = screenToNorm(clientX, clientY);
   state.ballX = x;

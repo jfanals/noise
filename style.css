@@ -82,6 +82,18 @@ html, body {
   letter-spacing: 0.03em;
 }
 
+/* Mobile: larger HUD text */
+@media (pointer: coarse) {
+  .hud {
+    bottom: calc(32px + var(--safe-bottom));
+    right: calc(32px + var(--safe-right));
+  }
+  .hud-type { font-size: 22px; }
+  .hud-freq { font-size: 17px; margin-top: 4px; }
+  .hud-timer { font-size: 17px; margin-top: 12px; }
+  .hud-hint { font-size: 13px; margin-top: 6px; }
+}
+
 ::selection {
   background: rgba(0, 212, 255, 0.25);
 }
