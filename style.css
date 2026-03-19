@@ -76,16 +76,16 @@ html, body {
 }
 
 .hud-hint {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.2);
-  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  margin-top: 6px;
   letter-spacing: 0.03em;
 }
 
 .hud-version {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.12);
-  margin-top: 8px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.2);
+  margin-top: 10px;
   letter-spacing: 0.04em;
 }
 
@@ -98,8 +98,8 @@ html, body {
   .hud-type { font-size: 22px; }
   .hud-freq { font-size: 17px; margin-top: 4px; }
   .hud-timer { font-size: 17px; margin-top: 12px; }
-  .hud-hint { font-size: 13px; margin-top: 6px; }
-  .hud-version { font-size: 12px; margin-top: 12px; }
+  .hud-hint { font-size: 14px; margin-top: 8px; }
+  .hud-version { font-size: 13px; margin-top: 14px; }
 }
 
 ::selection {
